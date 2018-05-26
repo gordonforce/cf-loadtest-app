@@ -44,3 +44,48 @@ subprojects {
         testCompile "org.assertj:assertj-core:3.8.0"
     }
 }
+
+def executeWithPrint(cmd) {
+    println cmd
+    println cmd.execute().text
+}
+
+task cfSetup() {
+
+    doLast {
+        [
+                "cf create-service p-mysql 100mb tracker-allocations-database",
+                "cf create-service p-mysql 100mb tracker-backlog-database",
+                "cf create-service p-mysql 100mb tracker-registration-database",
+                "cf create-service p-mysql 100mb tracker-timesheets-database",
+                "cf create-service p-service-registry standard tracker-service-registry",
+//          "fly -t pal-concourse set-pipeline -p pal-tracker-distributed --load-vars-from ci/variables.yml -c ci/pipeline.yml"
+        ].each { executeWithPrint(it) }
+    }
+}
+
+def deleteApplication(app, database) {
+
+    [
+            "cf unbind-service $app $database",
+            "cf delete-service $database -f",
+            "cf unbind-service $app tracker-service-registry",
+            "cf delete $app -r -f"
+    ].each { executeWithPrint(it) }
+}
+
+
+task cfTeardown() {
+
+    doLast {
+        deleteApplication("tracker-allocations", "tracker-allocations-database")
+        deleteApplication("tracker-backlog", "tracker-backlog-database")
+        deleteApplication("tracker-registration", "tracker-registration-database")
+        deleteApplication("tracker-timesheets", "tracker-timesheets-database")
+
+        [
+                "cf delete-service tracker-service-registry -f",
+//          "fly -t pal-concourse destroy-pipeline -p pal-tracker-distributed"
+        ].each{executeWithPrint(it)}
+    }
+}
