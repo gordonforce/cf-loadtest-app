@@ -1,4 +1,4 @@
-rootProject.name = "pal-tracker-distributed"
+rootProject.name = "cf-loadtest-app"
 
 include "applications:allocations-server"
 include "applications:backlog-server"
